@@ -65,10 +65,10 @@ if gz_selection['selection']['rows']:
             if os.path.exists(f"data//{name}//{name}_expr.csv"):
                 # Load and process expression data
                 st.subheader("Expression matrix")
-                gene_names_df = pd.read_excel("data/conv_table.xlsx", index_col=0).rename_axis('id')
+                # gene_names_df = pd.read_excel("data/conv_table.xlsx", index_col=0).rename_axis('id')
                 expr_df = pd.read_csv(f"data//{name}//{name}_expr.csv", index_col=0).rename_axis('id')
-                expr_df.index = expr_df.index.map(lambda x: gene_names_df.loc[x, 'symbol'])
-                expr_df.rename_axis('symbol', inplace=True)
+                # expr_df.index = expr_df.index.map(lambda x: gene_names_df.loc[x, 'symbol'])
+                # expr_df.rename_axis('symbol', inplace=True)
                 st.dataframe(expr_df)
                 
                 # Show phenotype data
@@ -155,6 +155,7 @@ if gz_selection['selection']['rows']:
                                     
                                     # Create datasets for each group
                                     group_datasets = {}
+                                    avg_group_datasets = {} # Добавь сюда датасеты с average expression
                                     for group in unique_groups:
                                         # Get sample IDs for this group
                                         group_samples = phen_df[phen_df[selected_phen_column] == group].index.tolist()
@@ -164,11 +165,26 @@ if gz_selection['selection']['rows']:
                                         
                                         # Store in dictionary
                                         group_datasets[group] = group_data
+                                        
+                                        # Create averaged dataset
+                                        avg_data = pd.DataFrame({
+                                            'Expression': group_data.mean(axis=1)
+                                        })
+                                        # Store averaged data in dictionary
+                                        avg_group_datasets[group] = avg_data
+                                    combined_df = pd.concat([
+                                        df.reset_index()
+                                        .assign(Group=group_name)
+                                        .rename(columns={'index': 'id', 0: 'Expression'})
+                                        for group_name, df in avg_group_datasets.items()
+                                    ], ignore_index=True)
+                                    combined_df = combined_df.pivot_table(index='Group', columns='id', values='Expression')
                                     
                                     # Save to session state
                                     st.session_state.group_datasets = {
                                         'groups': list(group_datasets.keys()),
-                                        'datasets': group_datasets
+                                        'datasets': group_datasets,
+                                        'avg': combined_df
                                     }
                                     
                                     st.success(f"Создано {len(unique_groups)} датасетов по группам!")
@@ -185,6 +201,10 @@ if gz_selection['selection']['rows']:
                                             dataset = st.session_state.group_datasets['datasets'][group]
                                             st.write(f"Образцов в группе: {len(dataset.columns)}")
                                             st.dataframe(dataset)
+                                            
+                                    st.markdown("---")
+                                    st.subheader("Датасет со средними значениями экспрессии по группам")
+                                    st.dataframe(st.session_state.group_datasets['avg'])
                             else:
                                 st.warning("No phenotype columns available for filtering")
             

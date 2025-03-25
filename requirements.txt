@@ -6,4 +6,5 @@ matplotlib
 scikit-learn
 lifelines
 requests
-GEOparse
+networkx
+plotly
