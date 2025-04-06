@@ -132,7 +132,7 @@ def plot_volcano(results, group1, group2, top_genes=10, fc_threshold=1, P_VALUE=
     st.plotly_chart(fig, use_container_width=True)
 
 
-def plot_heatmap(group1, group2, group1_data, group2_data, top_genes, fc_threshold, P_VALUE = 0.05):
+def plot_heatmap(group1, group2, group1_data, group2_data, top_genes, fc_threshold, P_VALUE=0.05, width=4, height=40):
     # Calculate mean expression per group for top genes
     mean_expr = pd.DataFrame({
         group1: group1_data.loc[top_genes].mean(axis=1),
@@ -143,7 +143,7 @@ def plot_heatmap(group1, group2, group1_data, group2_data, top_genes, fc_thresho
     mean_expr.sort_values('id', inplace=True)
     plt.rcParams.update({'font.size': 6})
 
-    fig = plt.figure(figsize=(4, 40))
+    fig = plt.figure(figsize=(width, height))
     sns.heatmap(mean_expr, annot=True, fmt='.2f',
                 linewidths=0.5, cmap='plasma')
     plt.title(
@@ -185,8 +185,10 @@ def main():
     df_group1 = st.session_state.group_datasets['datasets'][group1]
     df_group2 = st.session_state.group_datasets['datasets'][group2]
     fc_threshold = 1
-    
+
     P_VALUE = float(st.text_input("P-value", "0.05"))
+    width = float(st.text_input("Heatmap width", "4"))
+    height = float(st.text_input("Heatmap height", "40"))
 
     if st.button("Запустить дифференциальный анализ экспрессии"):
         with st.spinner("Считаем дифференциальную экспрессию..."):
@@ -204,11 +206,12 @@ def main():
         if max_top_genes > 0:
             top_genes = st.slider("Число помеченных самых значимых генов:", 0, max_top_genes, min(
                 10, max_top_genes), key="top_genes_slider")
-            plot_volcano(results, group1, group2, top_genes, fc_threshold, P_VALUE)
+            plot_volcano(results, group1, group2,
+                         top_genes, fc_threshold, P_VALUE)
 
             if 'top_genes' in st.session_state and st.session_state.top_genes:
                 plot_heatmap(group1, group2, df_group1, df_group2,
-                             st.session_state.top_genes, fc_threshold, P_VALUE)
+                             st.session_state.top_genes, fc_threshold, P_VALUE, width, height)
         else:
             st.info(f"Значимых генов с p < {P_VALUE} and |FC| ≥ 1 нет.")
 
